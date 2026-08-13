@@ -1,0 +1,19 @@
+{
+  "name": "90-melody",
+  "version": "1.0.0",
+  "description": "90 मेलोडी — A nostalgic music experience inspired by timeless Indian melodies and the atmosphere of the 90s",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../frontend && npm install",
+    "client": "cd frontend && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd frontend && npm run build",
+    "start": "cd server && npm start",
+    "seed": "cd server && node utils/seed.js"
+  },
+  "keywords": ["music", "90s", "bollywood", "nostalgia", "indian"],
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
