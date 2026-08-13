@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Clock } from '../components/Clock';
 import { OnlineUsers } from '../components/OnlineUsers';
 import { MusicServices } from '../components/MusicServices';

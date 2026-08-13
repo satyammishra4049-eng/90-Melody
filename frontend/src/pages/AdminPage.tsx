@@ -90,8 +90,8 @@ export const AdminPage: React.FC = () => {
   const handleEdit = (song: Song) => {
     setEditingSong(song);
     setFormData({
-      title: song.title, artist: song.artist, album: song.album,
-      duration: song.duration, coverUrl: song.coverUrl, audioUrl: song.audioUrl,
+      title: song.title || '', artist: song.artist || '', album: song.album || '',
+      duration: song.duration || 300, coverUrl: song.coverUrl || '', audioUrl: song.audioUrl || '',
       year: song.year || 1995, genre: song.genre || 'Bollywood'
     });
     setShowForm(true);

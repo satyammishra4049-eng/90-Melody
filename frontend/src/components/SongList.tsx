@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaPlay, FaPause } from 'react-icons/fa';
+import { FaPause } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 

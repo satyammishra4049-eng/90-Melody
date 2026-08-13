@@ -108,7 +108,7 @@ export const useAudioPlayer = (): UseAudioPlayerResult => {
         setDuration(song.duration || 0);
         setCurrentTime(0);
         setEnded(false);
-        audio.src = song.audioUrl;
+        audio.src = song.audioUrl || '';
         audio.load();
       }
       await audio.play();
