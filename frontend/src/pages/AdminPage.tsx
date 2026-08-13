@@ -4,6 +4,17 @@ import { FaPlus, FaEdit, FaTrash, FaMusic, FaUsers, FaChartBar, FaSignOutAlt, Fa
 import { api } from '../services/api';
 import type { Song } from '../types';
 
+interface SongFormData {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  coverUrl: string;
+  audioUrl: string;
+  year: number;
+  genre: string;
+}
+
 export const AdminPage: React.FC = () => {
   const [token, setToken] = useState(localStorage.getItem('adminToken') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -14,7 +25,7 @@ export const AdminPage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SongFormData>({
     title: '', artist: '', album: '', duration: 300, coverUrl: '', audioUrl: '', year: 1995, genre: 'Bollywood'
   });
 
@@ -74,7 +85,9 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     try {
       if (editingSong) {
-        await api.adminUpdateSong(token, editingSong.id || editingSong._id!, formData);
+        const songId = editingSong.id ?? editingSong._id;
+        if (!songId) throw new Error('Song ID is missing');
+        await api.adminUpdateSong(token, songId, formData);
       } else {
         await api.adminCreateSong(token, formData);
       }
@@ -100,7 +113,9 @@ export const AdminPage: React.FC = () => {
   const handleDelete = async (song: Song) => {
     if (!confirm(`Delete "${song.title}"?`)) return;
     try {
-      await api.adminDeleteSong(token, song.id || song._id!);
+      const songId = song.id ?? song._id;
+      if (!songId) throw new Error('Song ID is missing');
+      await api.adminDeleteSong(token, songId);
       loadSongs();
     } catch (err) {
       console.error('Failed to delete song:', err);
@@ -199,7 +214,7 @@ export const AdminPage: React.FC = () => {
                 {(['title', 'artist', 'album', 'audioUrl', 'coverUrl'] as const).map(field => (
                   <div key={field}>
                     <label className="text-gray-400 text-xs mb-1 block capitalize">{field.replace(/([A-Z])/g, ' $1')}</label>
-                    <input value={(formData as any)[field]} onChange={e => setFormData(prev => ({ ...prev, [field]: e.target.value }))}
+                    <input value={formData[field]} onChange={e => setFormData(prev => ({ ...prev, [field]: e.target.value }))}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" required={field === 'title' || field === 'artist'} />
                   </div>
                 ))}
