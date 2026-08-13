@@ -26,16 +26,27 @@ const youtubeRoutes = require('./routes/youtubeRoutes');
 const app = express();
 const server = http.createServer(app);
 
+// Determine CORS origin for both dev and production
+const corsOrigin = env.CLIENT_URL || (
+  env.NODE_ENV === 'production' 
+    ? 'https://90-melody.vercel.app' 
+    : 'http://localhost:5173'
+);
+
 // Socket.io Setup
 const io = new Server(server, {
   cors: {
-    origin: env.CLIENT_URL,
-    methods: ['GET', 'POST']
+    origin: corsOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 // Middleware
-app.use(cors({ origin: env.CLIENT_URL }));
+app.use(cors({ 
+  origin: corsOrigin,
+  credentials: true 
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (helmet) app.use(helmet());
@@ -55,6 +66,24 @@ app.use('/api/youtube', youtubeRoutes);
 // Mock static routes for placeholder urls
 app.get('/api/audio/*', (req, res) => res.send('audio demo placeholder'));
 app.get('/api/covers/*', (req, res) => res.send('cover demo placeholder'));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 404 handler for API routes
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ 
+      error: 'API endpoint not found', 
+      path: req.path,
+      method: req.method 
+    });
+  }
+  // For non-API routes, let Vercel handle them (frontend routing)
+  res.status(404).json({ error: 'Not found' });
+});
 
 // Initialize Socket.io
 onlineUsersSocket(io);

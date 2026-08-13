@@ -1,32 +1,42 @@
 {
   "version": 2,
+  "public": false,
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "react",
   "builds": [
-    {
-      "src": "server/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60
-      }
-    },
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "frontend/dist"
       }
+    },
+    {
+      "src": "server/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60,
+        "includeFiles": "server/**",
+        "excludeFiles": "server/node_modules/**"
+      }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/.*",
       "dest": "server/server.js"
     },
     {
-      "src": "/socket.io(.*)",
+      "src": "/socket.io.*",
       "dest": "server/server.js"
     },
     {
       "src": "/(.*)",
+      "dest": "frontend/dist/$1"
+    },
+    {
+      "src": "/(?!api|socket\\.io).*",
       "dest": "frontend/dist/index.html"
     }
   ],
