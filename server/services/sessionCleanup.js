@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const ActiveSession = require('../models/ActiveSession');
 
 // TTL index in MongoDB (expires: 60) automatically handles cleanup of expired sessions,
@@ -7,6 +8,12 @@ const ActiveSession = require('../models/ActiveSession');
 const startSessionCleanup = (interval = 30000) => {
   setInterval(async () => {
     try {
+      // Check if MongoDB connection is ready before attempting cleanup
+      if (mongoose.connection.readyState !== 1) {
+        console.warn('MongoDB connection not ready, skipping session cleanup');
+        return;
+      }
+
       // Find sessions where lastSeen is older than 60 seconds
       const threshold = new Date(Date.now() - 60000);
       const result = await ActiveSession.deleteMany({ lastSeen: { $lt: threshold } });
@@ -14,7 +21,8 @@ const startSessionCleanup = (interval = 30000) => {
         console.log(`Cleaned up ${result.deletedCount} expired sessions.`);
       }
     } catch (error) {
-      console.error('Error during session cleanup:', error.message);
+      console.warn('Session cleanup warning:', error.message);
+      // Don't crash the server on cleanup errors
     }
   }, interval);
 };
