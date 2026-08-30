@@ -1,16 +1,14 @@
+'use strict';
+
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
-// Only require these if they are typically used in production standard express apps. We'll wrap in try-catch in case they aren't installed.
+
 let helmet, morgan;
 try { helmet = require('helmet'); } catch (e) {}
 try { morgan = require('morgan'); } catch (e) {}
 
 const connectDB = require('./config/db');
 const env = require('./config/env');
-const onlineUsersSocket = require('./sockets/onlineUsers');
-const startSessionCleanup = require('./services/sessionCleanup');
 const rateLimiter = require('./middleware/rateLimiter');
 
 // Routes
@@ -24,36 +22,63 @@ const healthRoutes = require('./routes/healthRoutes');
 const youtubeRoutes = require('./routes/youtubeRoutes');
 
 const app = express();
-const server = http.createServer(app);
 
-// Determine CORS origin for both dev and production
-const corsOrigin = env.CLIENT_URL || (
-  env.NODE_ENV === 'production' 
-    ? 'https://90-melody.vercel.app' 
-    : 'http://localhost:5173'
-);
+// ─── CORS ───────────────────────────────────────────────────────────────────
+// Allow the production frontend URL, the Vercel preview URLs, and localhost.
+const allowedOrigins = [
+  'https://90-melody.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
 
-// Socket.io Setup
-const io = new Server(server, {
-  cors: {
-    origin: corsOrigin,
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
+// Also allow any *.vercel.app preview deployment (e.g. 90-melody-git-main-xxx.vercel.app)
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Pre-flight for all routes
+
+// ─── Middleware ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
+if (helmet) {
+  app.use(
+    helmet({
+      // Allow Vercel's own scripts/frames; keep CSP relaxed for music embeds
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+}
+if (morgan && env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+app.use(rateLimiter({ windowMs: 60000, max: 200 }));
+
+// ─── DB connection (cached for serverless warm invocations) ──────────────────
+// connectDB handles its own global caching internally (see config/db.js).
+// We call it here so the connection is ready before the first request.
+// Vercel will reuse this module between warm invocations, so connectDB
+// will no-op if already connected.
+connectDB().catch((err) => {
+  console.error('[server] DB connection failed:', err.message);
 });
 
-// Middleware
-app.use(cors({ 
-  origin: corsOrigin,
-  credentials: true 
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-if (helmet) app.use(helmet());
-if (morgan) app.use(morgan('dev'));
-app.use(rateLimiter({ windowMs: 60000, max: 100 })); // Apply globally for simplicity
-
-// Setup Routes
+// ─── Routes ─────────────────────────────────────────────────────────────────
 app.use('/api/songs', songRoutes);
 app.use('/api/online-users', onlineRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -63,44 +88,52 @@ app.use('/api/playlist', playlistRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/youtube', youtubeRoutes);
 
-// Mock static routes for placeholder urls
-app.get('/api/audio/*', (req, res) => res.send('audio demo placeholder'));
-app.get('/api/covers/*', (req, res) => res.send('cover demo placeholder'));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Standalone health check (no /api prefix) — used by uptime monitors
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 404 handler for API routes
+// ─── 404 handler (API only) ──────────────────────────────────────────────────
+// Non-API paths are handled by Vercel's filesystem + SPA catch-all in vercel.json.
 app.use((req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ 
-      error: 'API endpoint not found', 
-      path: req.path,
-      method: req.method 
-    });
-  }
-  // For non-API routes, let Vercel handle them (frontend routing)
-  res.status(404).json({ error: 'Not found' });
+  res.status(404).json({
+    error: 'API endpoint not found',
+    path: req.path,
+    method: req.method,
+  });
 });
 
-// Initialize Socket.io
-onlineUsersSocket(io);
-
-// Connect to Database and start server
-const startServer = async () => {
-  await connectDB();
-  
-  // Start session cleanup task
-  startSessionCleanup(30000); // 30 seconds
-  
-  const PORT = env.PORT || 5000;
-  server.listen(PORT, () => {
-    console.log(`Server running in ${env.NODE_ENV} mode on port ${PORT}`);
+// ─── Global error handler ────────────────────────────────────────────────────
+app.use((err, req, res, _next) => {
+  console.error('[server error]', err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message,
   });
-};
+});
 
-startServer();
+// ─── Local dev only: start HTTP server ──────────────────────────────────────
+// On Vercel, this file is imported as a serverless function handler.
+// When running locally with `node server.js`, we still want a live server.
+if (require.main === module) {
+  const http = require('http');
+  const { Server: SocketServer } = require('socket.io');
+  const onlineUsersSocket = require('./sockets/onlineUsers');
+  const startSessionCleanup = require('./services/sessionCleanup');
 
-module.exports = { app, server };
+  const httpServer = http.createServer(app);
+  const io = new SocketServer(httpServer, {
+    cors: corsOptions,
+  });
+  onlineUsersSocket(io);
+  startSessionCleanup(30000);
+
+  const PORT = env.PORT || 5000;
+  httpServer.listen(PORT, () => {
+    console.log(`[dev] Server running on http://localhost:${PORT}`);
+  });
+}
+
+// ─── Vercel: export the Express app as the serverless handler ────────────────
+module.exports = app;
+

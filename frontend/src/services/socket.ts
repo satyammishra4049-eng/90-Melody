@@ -1,26 +1,29 @@
-import { io, Socket } from 'socket.io-client';
+// socket.ts — HTTP polling fallback for Vercel serverless
+// Socket.io requires a persistent TCP connection which Vercel's serverless
+// functions do not support. We expose the same interface as the old socket
+// service so the rest of the app needs no changes — but internally we
+// use the existing REST API endpoints (/api/online-users/*).
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000'
-    : window.location.origin
-);
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    : '/api');
 
-let socket: Socket | null = null;
-
-export const getSocket = (): Socket => {
-  if (!socket) {
-    socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
-  }
-  return socket;
-};
-
-export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
+/** Fetch the current online count from the REST API. */
+export const fetchOnlineCount = async (): Promise<number> => {
+  try {
+    const res = await fetch(`${API_BASE}/online-users/count`);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return typeof data.count === 'number' ? data.count : 0;
+  } catch {
+    return 0;
   }
 };
+
+// Keep exports so any legacy import of getSocket / disconnectSocket
+// doesn't break at compile-time. They are intentional no-ops here.
+export const getSocket = () => null;
+export const disconnectSocket = () => undefined;
+

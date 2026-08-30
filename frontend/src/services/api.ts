@@ -55,7 +55,7 @@ export const api = {
     fetchWrapper<void>(`/songs/${id}`, { method: 'DELETE' }),
 
   // Online Users
-  getOnlineUsers: () => fetchWrapper<{ count: number }>('/online-users'),
+  getOnlineUsers: () => fetchWrapper<{ count: number }>('/online-users/count'),
 
   // Player
   getNowPlaying: () => fetchWrapper<any>('/player/now-playing'),
@@ -67,7 +67,7 @@ export const api = {
 
   // Analytics
   trackEvent: (event: AnalyticsEvent) =>
-    fetchWrapper<void>('/analytics/event', { method: 'POST', body: JSON.stringify(event) }),
+    fetchWrapper<void>('/analytics/track', { method: 'POST', body: JSON.stringify(event) }),
 
   // Admin
   adminLogin: (email: string, password: string) =>
