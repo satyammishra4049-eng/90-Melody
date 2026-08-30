@@ -19,7 +19,7 @@ exports.heartbeat = async (req, res) => {
     const session = await ActiveSession.findOneAndUpdate(
       { sessionId },
       { lastSeen: Date.now() },
-      { new: true }
+      { new: true, upsert: true }
     );
     
     if (!session) {

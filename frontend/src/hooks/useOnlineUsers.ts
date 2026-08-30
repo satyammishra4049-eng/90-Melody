@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchOnlineCount } from '../services/socket';
 
-export const useOnlineUsers = (initialCount = 39) => {
+export const useOnlineUsers = (initialCount = 1) => {
   const [count, setCount] = useState(initialCount);
 
   useEffect(() => {

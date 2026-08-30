@@ -13,6 +13,21 @@ const API_BASE =
 /** Fetch the current online count from the REST API. */
 export const fetchOnlineCount = async (): Promise<number> => {
   try {
+    // 1. Get or create a session ID for this user
+    let sessionId = sessionStorage.getItem('melody_session_id');
+    if (!sessionId) {
+      sessionId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('melody_session_id', sessionId);
+    }
+
+    // 2. Send heartbeat to register/update session
+    await fetch(`${API_BASE}/online-users/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+
+    // 3. Get the count
     const res = await fetch(`${API_BASE}/online-users/count`);
     if (!res.ok) return 0;
     const data = await res.json();

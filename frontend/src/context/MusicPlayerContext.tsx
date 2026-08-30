@@ -38,9 +38,29 @@ const DEFAULT_SONGS: Song[] = [
     album: 'Kasoor',
     coverUrl: 'https://i.ytimg.com/vi/LpX-fCgat1M/hqdefault.jpg',
     youtubeVideoId: 'LpX-fCgat1M',
-    youtubeUrl: 'https://youtu.be/LpX-fCgat1M?si=CmCujDow7A1RSsXI',
+    youtubeUrl: 'https://youtu.be/LpX-fCgat1M',
     year: 2001,
   },
+  {
+    id: 'default-2',
+    title: 'Tujhe Dekha Toh',
+    artist: 'Kumar Sanu, Lata Mangeshkar',
+    album: 'Dilwale Dulhania Le Jayenge',
+    coverUrl: 'https://i.ytimg.com/vi/cNV5hLSa9H8/hqdefault.jpg',
+    youtubeVideoId: 'cNV5hLSa9H8',
+    youtubeUrl: 'https://youtu.be/cNV5hLSa9H8',
+    year: 1995,
+  },
+  {
+    id: 'default-3',
+    title: 'Chura Ke Dil Mera',
+    artist: 'Kumar Sanu, Alka Yagnik',
+    album: 'Main Khiladi Tu Anari',
+    coverUrl: 'https://i.ytimg.com/vi/bzi4_qG71H8/hqdefault.jpg',
+    youtubeVideoId: 'bzi4_qG71H8',
+    youtubeUrl: 'https://youtu.be/bzi4_qG71H8',
+    year: 1994,
+  }
 ];
 
 export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
