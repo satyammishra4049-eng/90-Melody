@@ -76,7 +76,10 @@ export const useYouTubePlayer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
+  
   const activeVideoIdRef = useRef<string | null>(null);
+  // Store a pending song to play in case user clicks play before YT API is ready
+  const pendingPlayRef = useRef<Song | null>(null);
 
   useEffect(() => {
     let intervalId: number | null = null;
@@ -89,14 +92,14 @@ export const useYouTubePlayer = () => {
       if (!document.getElementById(PLAYER_ELEMENT_ID)) {
         const container = document.createElement('div');
         container.id = PLAYER_ELEMENT_ID;
-        // Move offscreen but keep non-zero size so browsers don't throttle/suspend the iframe
-        container.className = 'fixed -left-[9999px] top-0 w-1 h-1 opacity-0 pointer-events-none';
+        // 200x200 offscreen guarantees browsers won't throttle it for being too small
+        container.className = 'fixed -left-[9999px] top-0 w-[200px] h-[200px] opacity-0 pointer-events-none';
         document.body.appendChild(container);
       }
 
       playerRef.current = new window.YT.Player(PLAYER_ELEMENT_ID, {
-        height: '1',
-        width: '1',
+        height: '200',
+        width: '200',
         playerVars: {
           autoplay: 0,
           controls: 0,
@@ -104,7 +107,8 @@ export const useYouTubePlayer = () => {
           fs: 0,
           modestbranding: 1,
           rel: 0,
-          playsinline: 1,
+          playsinline: 1, // Crucial for mobile playback
+          origin: window.location.origin
         },
         events: {
           onReady: () => {
@@ -112,6 +116,13 @@ export const useYouTubePlayer = () => {
             playerRef.current?.setVolume(Math.round(volume * 100));
             setIsReady(true);
             setLoading(false);
+            
+            // If user clicked play while loading, play it now!
+            if (pendingPlayRef.current) {
+              const song = pendingPlayRef.current;
+              pendingPlayRef.current = null;
+              play(song);
+            }
           },
           onStateChange: (event: { data: number }) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
@@ -128,7 +139,8 @@ export const useYouTubePlayer = () => {
               setEnded(true);
             }
           },
-          onError: () => {
+          onError: (e: any) => {
+            console.error('YT Player Error:', e);
             setLoading(false);
             setError('Unable to play this YouTube video.');
             setIsPlaying(false);
@@ -156,7 +168,7 @@ export const useYouTubePlayer = () => {
       playerRef.current = null;
       document.getElementById(PLAYER_ELEMENT_ID)?.remove();
     };
-  }, []);
+  }, []); // Empty deps, only run once
 
   const setSongInfo = useCallback((song: Song) => {
     setCurrentSong(song);
@@ -166,10 +178,16 @@ export const useYouTubePlayer = () => {
     setError(null);
   }, []);
 
-  const play = useCallback(async (song?: Song) => {
-    const player = playerRef.current;
+  const play = useCallback((song?: Song) => {
     const targetSong = song || currentSong;
-    if (!player || !isReady || !targetSong) return;
+    if (!targetSong) return;
+
+    // If API isn't ready yet, queue the song and return
+    if (!playerRef.current || !isReady) {
+      pendingPlayRef.current = targetSong;
+      setLoading(true);
+      return;
+    }
 
     const videoId = getVideoId(targetSong);
     if (!videoId) {
@@ -182,8 +200,9 @@ export const useYouTubePlayer = () => {
       setCurrentSong(targetSong);
       setEnded(false);
       setError(null);
-      setIsPlaying(true); // Optimistic UI update for instant feedback
+      setIsPlaying(true);
 
+      const player = playerRef.current;
       if (activeVideoIdRef.current !== videoId) {
         player.loadVideoById(videoId);
         activeVideoIdRef.current = videoId;
@@ -199,7 +218,7 @@ export const useYouTubePlayer = () => {
   }, [currentSong, isReady]);
 
   const pause = useCallback(() => {
-    setIsPlaying(false); // Optimistic UI update
+    setIsPlaying(false);
     playerRef.current?.pauseVideo();
   }, []);
 
