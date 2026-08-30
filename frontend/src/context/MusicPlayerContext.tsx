@@ -126,16 +126,19 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const songs = await api.getSongs();
         if (songs && songs.length > 0) {
           setPlaylist(songs);
-          // Set default song info without autoplay
           player.setSongInfo(songs[0]);
+        } else {
+          // If DB is empty, set default info
+          player.setSongInfo(DEFAULT_SONGS[0]);
         }
       } catch (err) {
         console.error('Failed to fetch songs:', err);
-        // Keep default songs
+        // Keep default songs and set info
+        player.setSongInfo(DEFAULT_SONGS[0]);
       }
     };
     fetchSongs();
-  }, []);
+  }, []); // Run once on mount
 
   const playSong = useCallback((index: number) => {
     if (index >= 0 && index < playlist.length) {
@@ -219,7 +222,13 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         duration: player.duration || (currentSong?.duration || 0),
         loading: player.loading,
         error: player.error,
-        togglePlay: player.togglePlay,
+        togglePlay: () => {
+          if (player.isPlaying) {
+            player.pause();
+          } else {
+            player.play(player.currentSong || currentSong || undefined);
+          }
+        },
         seek: player.seek,
         setVolume: player.setVolume,
         toggleMute: player.toggleMute,
