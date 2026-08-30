@@ -89,13 +89,14 @@ export const useYouTubePlayer = () => {
       if (!document.getElementById(PLAYER_ELEMENT_ID)) {
         const container = document.createElement('div');
         container.id = PLAYER_ELEMENT_ID;
-        container.className = 'fixed opacity-0 pointer-events-none w-0 h-0 overflow-hidden';
+        // Move offscreen but keep non-zero size so browsers don't throttle/suspend the iframe
+        container.className = 'fixed -left-[9999px] top-0 w-1 h-1 opacity-0 pointer-events-none';
         document.body.appendChild(container);
       }
 
       playerRef.current = new window.YT.Player(PLAYER_ELEMENT_ID, {
-        height: '0',
-        width: '0',
+        height: '1',
+        width: '1',
         playerVars: {
           autoplay: 0,
           controls: 0,
@@ -181,6 +182,7 @@ export const useYouTubePlayer = () => {
       setCurrentSong(targetSong);
       setEnded(false);
       setError(null);
+      setIsPlaying(true); // Optimistic UI update for instant feedback
 
       if (activeVideoIdRef.current !== videoId) {
         player.loadVideoById(videoId);
@@ -197,6 +199,7 @@ export const useYouTubePlayer = () => {
   }, [currentSong, isReady]);
 
   const pause = useCallback(() => {
+    setIsPlaying(false); // Optimistic UI update
     playerRef.current?.pauseVideo();
   }, []);
 
