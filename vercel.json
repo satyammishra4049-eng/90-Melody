@@ -2,8 +2,14 @@
   "version": 2,
   "buildCommand": "cd server && npm install && cd ../frontend && npm install && npm run vercel-build",
   "outputDirectory": "frontend/dist",
-  "rewrites": [
-    { "source": "/:path*", "destination": "/index.html" }
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/[...path].js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
-
