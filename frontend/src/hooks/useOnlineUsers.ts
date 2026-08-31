@@ -12,9 +12,9 @@ export const useOnlineUsers = (initialCount = 1) => {
       if (!cancelled && n > 0) setCount(n);
     };
 
-    // Fetch immediately on mount, then every 30 seconds
+    // Fetch immediately on mount, then every 5 seconds
     refresh();
-    const interval = setInterval(refresh, 30000);
+    const interval = setInterval(refresh, 5000);
 
     return () => {
       cancelled = true;
