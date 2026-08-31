@@ -37,11 +37,11 @@ export const MusicServices: React.FC = () => {
         {/* Support Button */}
         <button
           onClick={() => setShowSupport(true)}
-          className="group flex items-center space-x-1 text-white/80 hover:text-pink-400 transition-colors duration-300 bg-black/20 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10 hover:border-pink-400/40"
+          className="group flex items-center space-x-1 sm:space-x-1.5 text-white/80 hover:text-pink-400 transition-colors duration-300 bg-black/20 backdrop-blur-md p-2 sm:px-2.5 sm:py-1.5 rounded-full border border-white/10 hover:border-pink-400/40"
           title="Support us"
         >
           <MdFavorite className="text-sm md:text-base text-pink-400" />
-          <span className="text-xs font-medium whitespace-nowrap">Support</span>
+          <span className="hidden sm:inline-block text-xs font-medium whitespace-nowrap">Support</span>
         </button>
 
         {/* YT Music Link */}
@@ -49,12 +49,12 @@ export const MusicServices: React.FC = () => {
           href={ytMusicUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center space-x-1.5 text-white/90 hover:text-white transition-colors duration-300"
+          className="group flex items-center space-x-1 sm:space-x-1.5 text-white/90 hover:text-white transition-colors duration-300 p-1"
           title={currentSong ? `Open "${currentSong.title}" on YouTube Music` : 'Open YouTube Music'}
         >
           <SiYoutubemusic className="text-base md:text-lg" />
-          <span className="text-xs md:text-sm font-medium whitespace-nowrap">YT Music</span>
-          <FiArrowUpRight className="text-xs transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          <span className="hidden sm:inline-block text-xs md:text-sm font-medium whitespace-nowrap">YT Music</span>
+          <FiArrowUpRight className="hidden sm:inline-block text-xs transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </a>
       </motion.div>
 
