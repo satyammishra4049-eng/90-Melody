@@ -55,6 +55,8 @@ app.options('*', cors(corsOptions)); // Pre-flight for all routes
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+// navigator.sendBeacon sends text/plain — parse it so remove-session works on unload
+app.use(express.text({ type: 'text/plain' }));
 if (helmet) {
   app.use(
     helmet({

@@ -13,7 +13,7 @@ const activeSessionSchema = new mongoose.Schema({
   lastSeen: {
     type: Date,
     default: Date.now,
-    expires: 60 // TTL index of 60 seconds
+    expires: 15 // TTL index of 15 seconds — fast cleanup
   },
   connectedAt: {
     type: Date,
